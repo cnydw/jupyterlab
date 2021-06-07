@@ -86,7 +86,9 @@ export class FileBrowserModel implements IDisposable {
       created: 'unknown',
       last_modified: 'unknown',
       mimetype: 'text/plain',
-      format: 'text'
+      format: 'text',
+      max_page: 1,
+      page: 1
     };
     this._state = options.state || null;
     const refreshInterval = options.refreshInterval || DEFAULT_REFRESH_INTERVAL;
@@ -107,7 +109,7 @@ export class FileBrowserModel implements IDisposable {
     this._poll = new Poll({
       auto: options.auto ?? true,
       name: '@jupyterlab/filebrowser:Model',
-      factory: () => this.cd('.'),
+      factory: () => this.cd('.'), // just interesting to look at later.
       frequency: {
         interval: refreshInterval,
         backoff: true,
@@ -162,6 +164,22 @@ export class FileBrowserModel implements IDisposable {
    */
   get pathChanged(): ISignal<this, IChangedArgs<string>> {
     return this._pathChanged;
+  }
+
+  get page(): number {
+    if (this._model) {
+      return this._model.page ? this._model.page : 1;
+    } else {
+      return 1;
+    }
+  }
+
+  get max_page(): number {
+    if (this._model) {
+      return this._model.max_page ? this._model.max_page : 1;
+    } else {
+      return 1;
+    }
   }
 
   /**
@@ -266,7 +284,7 @@ export class FileBrowserModel implements IDisposable {
       await this._pending;
     }
     const oldValue = this.path;
-    const options: Contents.IFetchOptions = { content: true };
+    const options: Contents.IFetchOptions = { content: true, page: this._model.page };
     this._pendingPath = newValue;
     if (oldValue !== newValue) {
       this._sessions.length = 0;
@@ -294,6 +312,42 @@ export class FileBrowserModel implements IDisposable {
             newValue
           });
         }
+        this._onRunningChanged(services.sessions, services.sessions.running());
+        this._refreshed.emit(void 0);
+      })
+      .catch(error => {
+        this._pendingPath = null;
+        this._pending = null;
+        if (error.response && error.response.status === 404) {
+          error.message = this._trans.__(
+            'Directory not found: "%1"',
+            this._model.path
+          );
+          console.error(error);
+          this._connectionFailure.emit(error);
+          return this.cd('/');
+        } else {
+          this._connectionFailure.emit(error);
+        }
+      });
+    return this._pending;
+  }
+
+  // basically cd to the same folder
+  // but with the page parameter being newPage instead of model.page
+  async cd_page(newPage: number): Promise<void> {
+    const options: Contents.IFetchOptions = { content: true, page: newPage };
+    const services = this.manager.services;
+    this._pending = services.contents
+      .get(this._model.path, options)
+      .then(contents => {
+        if (this.isDisposed) {
+          return;
+        }
+        this._handleContents(contents);
+        this._pendingPath = null;
+        this._pending = null;
+
         this._onRunningChanged(services.sessions, services.sessions.running());
         this._refreshed.emit(void 0);
       })
@@ -584,7 +638,9 @@ export class FileBrowserModel implements IDisposable {
       created: contents.created,
       last_modified: contents.last_modified,
       mimetype: contents.mimetype,
-      format: contents.format
+      format: contents.format,
+      page: contents.page,
+      max_page: contents.max_page
     };
     this._items = contents.content;
     this._paths.clear();

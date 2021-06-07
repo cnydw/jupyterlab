@@ -300,3 +300,25 @@
   min-height: 120px;
   outline: none;
 }
+
+
+.jp-DirPagination {
+  flex: 0 0 auto;
+  display: flex;
+}
+
+.jp-DirPagination * {
+  color: black;
+  flex: 1;
+  text-align: center;
+  padding: 8px 0px;
+}
+
+.jp-DirPagination a.active {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.jp-DirPagination a:hover:not(.active) {
+  background-color: #ddd;
+}

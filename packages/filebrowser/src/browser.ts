@@ -32,6 +32,7 @@ import {
   TranslationBundle,
   ITranslator
 } from '@jupyterlab/translation';
+import { Paging } from './paging';
 
 /**
  * The class name added to file browsers.
@@ -121,6 +122,8 @@ export class FileBrowser extends Widget {
       translator: this.translator
     });
 
+    this._paging = new Paging({model});
+
     this._filenameSearcher = FilenameSearcher({
       listing: this._listing,
       useFuzzyFilter: this._useFuzzyFilter,
@@ -137,6 +140,7 @@ export class FileBrowser extends Widget {
     this.layout.addWidget(this._filenameSearcher);
     this.layout.addWidget(this._crumbs);
     this.layout.addWidget(this._listing);
+    this.layout.addWidget(this._paging);
 
     if (options.restore !== false) {
       void model.restore(this.id);
@@ -174,6 +178,11 @@ export class FileBrowser extends Widget {
    */
   set useFuzzyFilter(value: boolean) {
     this._useFuzzyFilter = value;
+    // remove this._filenameSearcher before redefining it to avoid removing a non existent widget
+    this.layout.removeWidget(this._filenameSearcher);
+    this.layout.removeWidget(this._crumbs);
+    this.layout.removeWidget(this._listing);
+    this.layout.removeWidget(this._paging);
 
     this._filenameSearcher = FilenameSearcher({
       listing: this._listing,
@@ -182,14 +191,10 @@ export class FileBrowser extends Widget {
       forceRefresh: true
     });
     this._filenameSearcher.addClass(FILTERBOX_CLASS);
-
-    this.layout.removeWidget(this._filenameSearcher);
-    this.layout.removeWidget(this._crumbs);
-    this.layout.removeWidget(this._listing);
-
     this.layout.addWidget(this._filenameSearcher);
     this.layout.addWidget(this._crumbs);
     this.layout.addWidget(this._listing);
+    this.layout.addWidget(this._paging);
   }
 
   /**
@@ -357,6 +362,7 @@ export class FileBrowser extends Widget {
   private _trans: TranslationBundle;
   private _crumbs: BreadCrumbs;
   private _listing: DirListing;
+  private _paging: Paging;
   private _filenameSearcher: ReactWidget;
   private _manager: IDocumentManager;
   private _directoryPending: boolean;

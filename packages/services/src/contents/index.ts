@@ -102,6 +102,9 @@ export namespace Contents {
      */
     readonly size?: number;
 
+    readonly page?: number;
+
+    readonly max_page?: number;
     /**
      * The indices of the matched characters in the name.
      */
@@ -145,6 +148,11 @@ export namespace Contents {
      * The default is `true`.
      */
     content?: boolean;
+
+    /**
+     * The page number used for directory contents paging.
+     */
+    page?: number;
   }
 
   /**
